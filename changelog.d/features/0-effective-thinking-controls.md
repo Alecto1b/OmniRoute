@@ -1,0 +1,1 @@
+- **feat(providers):** Publish effective host thinking controls from shared Codex caps and Kiro profiles, preserve GPT-6.1 Sol Max across Responses translation, and distinguish native tiers, budget aliases, fixed routes, and unknown capabilities — thanks @Alecto1b.

@@ -7,11 +7,14 @@
  * rejects the field for `claude-sonnet-4.5` and `claude-haiku-4.5` with a raw
  * upstream 400 (`additionalModelRequestFields is not supported for this
  * model`, issue #6576) even though both ARE thinking-capable on Anthropic's
- * direct API. `claude-opus-5` and `claude-sonnet-5` are confirmed to accept
- * the adaptive envelope on Kiro today. GPT-5.6 models use Kiro's separate
+ * direct API. Profiles mirror Kiro's documented configuration schemas:
+ * https://kiro.dev/docs/models/effort/ (updated October 9, 2026).
+ * Keep the supported schemas explicit rather than treating all Claude models alike.
+ * GPT-5.6 models use Kiro's separate
  * `reasoning.effort` shape, not this Claude adaptive envelope.
  */
-const KIRO_ADAPTIVE_THINKING_MODELS = new Set(["claude-opus-5", "claude-sonnet-5"]);
+import { KIRO_THINKING_PROFILES } from "../../../../src/shared/reasoning/effectiveThinkingControls.ts";
+const KIRO_ADAPTIVE_THINKING_MODELS = new Set(Object.keys(KIRO_THINKING_PROFILES));
 const KIRO_NATIVE_REASONING_MODELS = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]);
 
 export function supportsKiroAdaptiveThinking(normalizedModel: string): boolean {

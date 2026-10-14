@@ -6,6 +6,7 @@ import { register } from "../registry.ts";
 import { FORMATS } from "../formats.ts";
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 import { capMaxOutputTokens, capThinkingBudget } from "@/lib/modelCapabilities";
+import { getKiroThinkingProfile } from "../../../src/shared/reasoning/effectiveThinkingControls.ts";
 import {
   parseToolInput,
   normalizeKiroToolSchema,
@@ -747,16 +748,15 @@ function convertMessages(messages, tools, model) {
   const answeredToolUseIds = new Set<string>();
   for (const item of mergedHistory) {
     const toolResults = item.userInputMessage?.userInputMessageContext?.toolResults as
-      | Array<{ toolUseId?: string }>
-      | undefined;
+      Array<{ toolUseId?: string }> | undefined;
     if (Array.isArray(toolResults)) {
       for (const result of toolResults) {
         if (result?.toolUseId) answeredToolUseIds.add(result.toolUseId);
       }
     }
   }
-  const currentToolResultsForOrphanCheck = currentMessage?.userInputMessage
-    ?.userInputMessageContext?.toolResults as Array<{ toolUseId?: string }> | undefined;
+  const currentToolResultsForOrphanCheck = currentMessage?.userInputMessage?.userInputMessageContext
+    ?.toolResults as Array<{ toolUseId?: string }> | undefined;
   if (Array.isArray(currentToolResultsForOrphanCheck)) {
     for (const result of currentToolResultsForOrphanCheck) {
       if (result?.toolUseId) answeredToolUseIds.add(result.toolUseId);
@@ -764,8 +764,7 @@ function convertMessages(messages, tools, model) {
   }
   for (const item of mergedHistory) {
     const toolUses = item.assistantResponseMessage?.toolUses as
-      | Array<{ toolUseId?: string }>
-      | undefined;
+      Array<{ toolUseId?: string }> | undefined;
     if (!Array.isArray(toolUses)) continue;
     const filtered = toolUses.filter(
       (use) => use?.toolUseId && answeredToolUseIds.has(use.toolUseId)
@@ -1108,7 +1107,12 @@ export function buildKiroPayload(model, body, stream, credentials) {
     // Forward max_tokens only when the client set one, clamped to the model's
     // output window (floor 1024) — matches pi-kiro and avoids an over-budget reject.
     if (usesAdaptiveThinking && maxTokens > 0) {
-      const capped = capMaxOutputTokens(normalizedModel, maxTokens) ?? maxTokens;
+      // Use the same route output window that the catalog's thinking controls describe.
+      const routeCap = getKiroThinkingProfile(normalizedModel)?.maxTokens ?? Infinity;
+      const capped = Math.min(
+        capMaxOutputTokens(normalizedModel, maxTokens) ?? maxTokens,
+        routeCap
+      );
       fields.max_tokens = Math.max(Math.floor(capped), 1024);
     }
     payload.additionalModelRequestFields = fields;

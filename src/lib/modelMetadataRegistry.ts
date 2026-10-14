@@ -29,6 +29,7 @@ import {
   CANONICAL_EFFORT_VALUES,
   extendCodexGpt56EffortValues,
 } from "@/shared/reasoning/effortStandardization";
+import { resolveEffectiveThinkingControls } from "../shared/reasoning/effectiveThinkingControls.ts";
 
 const MODEL_METADATA_SCHEMA_VERSION = "model-metadata-v1";
 
@@ -514,6 +515,21 @@ export function enrichCatalogModelEntry<T extends JsonRecord>(
                 CANONICAL_EFFORT_VALUES
               );
   const capabilityFields = {
+    thinking_controls: resolveEffectiveThinkingControls({
+      id: typeof entry.id === "string" ? entry.id : undefined,
+      provider: metadata.provider,
+      model: metadata.model,
+      reasoning: !specialtySurface && metadata.capabilities.reasoning,
+      declaredEfforts:
+        metadata.capabilities.supportedThinkingEfforts ??
+        (Array.isArray(entry.supportedThinkingEfforts)
+          ? (entry.supportedThinkingEfforts as string[])
+          : existingCapabilities.effort_tiers_source === "declared"
+            ? declaredEffortTiers
+            : null),
+      thinkingBudgetCap: metadata.limits.thinkingBudgetCap,
+      defaultThinkingBudget: metadata.limits.defaultThinkingBudget,
+    }),
     ...(typeof metadata.capabilities.vision === "boolean"
       ? { vision: metadata.capabilities.vision }
       : {}),
